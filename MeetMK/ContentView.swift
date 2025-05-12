@@ -41,12 +41,14 @@ struct ContentView: View {
     @State private var visibleRegion: MKCoordinateRegion?
     
     @State private var searchResults: [MKMapItem] = []
+    @State private var selectedResult: MKMapItem?
+    @State private var route: MKRoute?
     
     @State private var auxText: String = ""
     
     var body: some View {
         ZStack {
-            Map(position: $position) {
+            Map(position: $position, selection: $selectedResult) {
                 Annotation("Parking", coordinate: .parking, anchor: .center) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 5)
@@ -62,13 +64,29 @@ struct ContentView: View {
                 ForEach(searchResults, id: \.self) { result in
                     Marker(item: result)
                 }
+                .annotationTitles(.hidden)
+                
+                if let route {
+                    MapPolyline(route)
+                        .stroke(.blue, lineWidth: 5)
+                }
+                
+                UserAnnotation()
             }
             .mapStyle(.standard(elevation: .realistic))
             .safeAreaInset(edge: .bottom) {
                 HStack {
                     Spacer()
+                    VStack(spacing:0) {
+                        if let selectedResult {
+                            ItemInfoView(selectedResult: selectedResult, route: route)
+                                .frame(height: 128)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .padding([.top, .horizontal])
+                        }
                     BeantownButtons(position: $position, searchResults: $searchResults, visibleRegion: visibleRegion)
                         .padding(.top)
+                    }
                     Spacer()
                 }
                 .background(.thinMaterial)
@@ -76,19 +94,43 @@ struct ContentView: View {
             .onChange(of: searchResults) {
                 position = .automatic
             }
+            .onChange(of: selectedResult) {
+                getDirections()
+            }
             .onMapCameraChange(frequency: .continuous) { context in
                 visibleRegion = context.region
-                auxText = String(describing: context.region.center)
+                auxText = String(describing: context.region)
+            }
+            .mapControls {
+                MapUserLocationButton()
+                MapCompass()
+                MapScaleView()
             }
 
-            VStack {
-                Text(auxText)
-                .padding()
-                .background(ignoresSafeAreaEdges: .horizontal)
-                .cornerRadius(50)
-                
-                Spacer()
-            }
+//            VStack {
+//                Text(auxText)
+//                .padding()
+//                .background(ignoresSafeAreaEdges: .horizontal)
+//                .cornerRadius(50)
+//                
+//                Spacer()
+//            }
+        }
+    }
+    
+    func getDirections() {
+        route = nil
+        guard let selectedResult else { return }
+        
+        let request = MKDirections.Request()
+        request.source = MKMapItem(placemark: MKPlacemark(coordinate: .parking))
+        print(MKPlacemark(coordinate: .parking))
+        request.destination = selectedResult
+        
+        Task {
+            let directions = MKDirections(request: request)
+            let response = try? await directions.calculate()
+            route = response?.routes.first
         }
     }
 }

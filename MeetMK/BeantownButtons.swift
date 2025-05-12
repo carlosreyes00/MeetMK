@@ -60,9 +60,6 @@ struct BeantownButtons: View {
             let search = MKLocalSearch(request: request)
             let response = try? await search.start()
             searchResults = response?.mapItems ?? []
-            searchResults.forEach { place in
-                print("\(String(describing: place.name))")
-            }
         }
     }
 }
