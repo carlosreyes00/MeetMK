@@ -7,6 +7,7 @@
 
 import SwiftUI
 import MapKit
+import CoreLocationUI
 
 struct BeantownButtons: View {
     @Binding var position: MapCameraPosition
@@ -44,6 +45,10 @@ struct BeantownButtons: View {
                 Label("North Shore", systemImage: "water.waves")
             }
             .buttonStyle(.bordered)
+            
+            LocationButton(.currentLocation) {
+
+            }
         }
         .labelStyle(.iconOnly)
     }
